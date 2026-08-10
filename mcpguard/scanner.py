@@ -127,8 +127,10 @@ class Scanner:
             parts.append("args: " + " ".join(str(a) for a in args))
         env = server.get("env")
         if isinstance(env, dict):
-            # env 里可能有 token，检测时包含键名与值
-            parts.append("env: " + json.dumps(env, ensure_ascii=False))
+            # 环境变量里可能有密钥。**只取键名，不取值**，避免把真实 token 带进报告。
+            # 检测器仍能通过键名（如 API_KEY）发现可疑配置，但值绝不落盘/落报告。
+            safe_env = {k: "***" for k in env.keys()}
+            parts.append("env_keys: " + json.dumps(safe_env, ensure_ascii=False))
         return "\n".join(parts)
 
     # ------------------------------------------------------------------

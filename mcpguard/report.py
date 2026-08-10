@@ -8,10 +8,26 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Dict, List
 
 from .rules import Finding, RuleEngine, severity_score
+
+# 报告脱敏：识别长密钥形态（ghp_/sk-/github_pat_/Bearer 等），打印前打码
+_SECRET_PATTERNS = [
+    re.compile(r"(ghp_|github_pat_|sk-|sk_|xoxb-|AIza|AKIA)[A-Za-z0-9_\-]{10,}"),
+    re.compile(r"(Bearer\s+)[A-Za-z0-9._\-]{10,}", re.I),
+    re.compile(r"(token\s*[=:]\s*)[A-Za-z0-9._\-]{8,}", re.I),
+    re.compile(r"(password\s*[=:]\s*)[^\s,;\"]{6,}", re.I),
+]
+
+
+def _redact(text: str) -> str:
+    """把文本中的密钥形态替换为 ***，防止报告泄露凭据。"""
+    for pat in _SECRET_PATTERNS:
+        text = pat.sub(lambda m: m.group(1) + "***" if m.lastindex else "***", text)
+    return text
 
 
 @dataclass
@@ -77,14 +93,14 @@ class ReportBuilder:
         lines.append(f"\n扫描目标: {len(results)} 个 | 命中: {total_findings} 条\n")
 
         for r in results:
-            mark = "🟢" if r.score == 100 else ("🟡" if r.score >= 70 else "🔴")
+            mark = "[PASS]" if r.score == 100 else ("[WARN]" if r.score >= 70 else "[FAIL]")
             lines.append(f"{mark} [{r.score:3d}/100] {r.target_name}")
             lines.append(f"    类型: {r.kind} | 路径: {r.path}")
             if r.findings:
                 for f in r.findings:
                     sev = f.severity.upper()
-                    lines.append(f"    ✗ [{sev}] {f.title} ({f.rule_id})")
-                    lines.append(f"        命中: {f.excerpt}")
+                    lines.append(f"    [x] [{sev}] {f.title} ({f.rule_id})")
+                    lines.append(f"        [x] 命中: {_redact(f.excerpt)}")
             lines.append("")
 
         # 汇总
@@ -95,7 +111,7 @@ class ReportBuilder:
         med = sum(1 for r in results for f in r.findings if f.severity == "medium")
         lines.append(f"  critical: {crit} | high: {high} | medium: {med} | 其余: {total_findings - crit - high - med}")
         if crit:
-            lines.append("\n⚠ 发现 critical 级风险：工具描述可能存在投毒指令，")
+            lines.append("\n[!] 发现 critical 级风险：工具描述可能存在投毒指令，")
             lines.append("  建议立即停止使用对应 MCP server，并人工检查其来源。")
         lines.append("\n说明: 规则检测仅提示可疑特征，不构成最终判定；")
         lines.append("      高风险项请结合人工审查确认。")
@@ -116,7 +132,7 @@ class ReportBuilder:
                 {
                     "name": r.target_name,
                     "kind": r.kind,
-                    "path": r.path,
+                    "path": _redact(r.path),
                     "score": r.score,
                     "max_severity": r.max_severity,
                     "findings": [
@@ -124,7 +140,7 @@ class ReportBuilder:
                             "rule_id": f.rule_id,
                             "severity": f.severity,
                             "title": f.title,
-                            "excerpt": f.excerpt,
+                            "excerpt": _redact(f.excerpt),
                             "source": f.source,
                         }
                         for f in r.findings

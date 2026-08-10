@@ -12,6 +12,14 @@ from __future__ import annotations
 import argparse
 import sys
 
+# Windows 控制台默认 GBK，无法输出 emoji/部分 Unicode；强制 UTF-8
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from . import __version__
 from .report import ReportBuilder
 from .rules import build_default_engine

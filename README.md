@@ -27,9 +27,22 @@
 | `PTH-001` 敏感路径引用 | 🟠 high | ~/.ssh、AWS 凭据、api key、password 等 |
 | `BH-001` 可疑工具行为 | 🟠 high | 静默抄送、不通知用户的外发、数据窃取等 |
 | `SHL-001` 危险 shell 模式 | 🔴 critical | curl\|bash、rm -rf、反向 shell 等 |
-| `B64-001` 可疑 base64 长串 | 🟡 medium | 疑似编码混淆的指令 |
+| `B64-001` 可疑 base64 长串 | 🟡 medium | 疑似编码混淆的指令（图片 base64 自动排除） |
+| `HMG-001` 同形字混淆 | 🟠 high | 西里尔字母冒充 ASCII 的字符混淆（如 а 冒充 a） |
+
+## 安全特性
+
+- **密钥零泄露**：扫描 MCP 配置时只取环境变量键名、不取值；报告输出前对 ghp_/sk-/Bearer 等密钥形态自动打码，防止安全工具自己泄露凭据
+- **完全本地**：数据不出机器，无任何外部调用
+- **零第三方依赖**：纯标准库实现，Python 3.9+ 可跑
 
 ## 快速开始
+
+**双击即玩（Windows）**：双击 `双击我.bat`，自动扫描本机 MCP 配置 + skill 目录。
+
+**独立 exe**：`dist/mcpguard.exe`，无需 Python 环境。
+
+**命令行（开发模式）**：
 
 ```bash
 # 扫描本机默认位置（自动找 MCP 配置 + skill 目录）
@@ -45,11 +58,10 @@ python -m mcpguard --path samples/mcp_config_demo.json --json
 python selftest.py
 ```
 
-或者安装为命令：
+**重新打包 exe**：
 
 ```bash
-pip install -e .
-mcpguard
+pyinstaller --onefile --name mcpguard --console run.py
 ```
 
 ## 运行效果

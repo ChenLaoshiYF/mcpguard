@@ -89,8 +89,28 @@ class RuleEngine:
 
 # Unicode 私有区（U+E0000–U+E007F）与零宽字符：人类看不见，LLM 能读
 _HIDDEN_UNICODE_RE = re.compile(
-    r"[\U000E0000-\U000E007F\u200B\u200C\u200D\u2060\uFEFF]"
+    r"[\U000E0000-\U000E007F\u200B\u200C\u200D\u2060\uFEFF\u00AD]"
 )
+
+# 同形字混淆（homoglyph）：用视觉相近的 Unicode 字符冒充 ASCII，绕过关键词过滤
+# 常见攻击字母 → 真 ASCII 字母的映射（部分）
+_HOMOGLYPH_MAP = {
+    "\u0430": "a", "\u0435": "e", "\u043E": "o", "\u0440": "p",
+    "\u0441": "c", "\u0445": "x", "\u0456": "i", "\u0458": "j",
+    "\u0432": "b", "\u043D": "h", "\u043A": "k", "\u043C": "m",
+    "\u0410": "A", "\u0415": "E", "\u041E": "O", "\u0420": "P",
+    "\u0421": "C", "\u0425": "X", "\u0433": "r", "\u0455": "s",
+    "\u00E0": "a", "\u00E9": "e", "\u00ED": "i", "\u00F3": "o",
+    "\u00FC": "u", "\u00E8": "e", "\u00F4": "o", "\u00EE": "i",
+}
+_HOMOGLYPH_TRANSLATION = str.maketrans(_HOMOGLYPH_MAP)
+
+# 中英文指令覆盖的关键词（同形字检测用：先归一化再匹配）
+_HOMOGLYPH_TRIGGERS = [
+    "ignore", "previous", "instructions", "system prompt", "override",
+    "忽略", "指令", "规则", "忘记", "现在开始", "你扮演",
+    "exfiltrat", "send to", "cc ", "bcc ",
+]
 
 # 常见"忽略之前指令"的中英文变体（含大小写/标点容错）
 _IGNORE_PATTERNS = [
@@ -205,6 +225,15 @@ def build_default_engine() -> RuleEngine:
         check=_check_suspicious_behavior,
     ))
 
+    engine.register(Rule(
+        id="HMG-001",
+        name="同形字混淆 (homoglyph)",
+        severity="high",
+        description="检测到用视觉相近的 Unicode 字符冒充 ASCII 字母（如西里尔 а 冒充 a），"
+                    "常用于绕过关键词过滤隐藏恶意指令。",
+        check=_check_homoglyph,
+    ))
+
     return engine
 
 
@@ -223,13 +252,38 @@ def _check_hidden_unicode(text: str) -> List[str]:
     return hits[:20]
 
 
+def _check_homoglyph(text: str) -> List[str]:
+    """检测同形字混淆：把文本里的可疑字符翻译成 ASCII，再查是否拼出了攻击关键词。"""
+    hits = []
+    # 先确认文本里确实存在可疑 Unicode 字母（仅西里尔区是强信号；
+    # 拉丁补字符区含 ≥ × – 等正常排版符号，不纳入，避免中文文档误报）
+    suspicious = re.findall(r"[\u0400-\u04FF]", text)
+    if not suspicious:
+        return hits
+    normalized = text.translate(_HOMOGLYPH_TRANSLATION)
+    lowered = normalized.lower()
+    for trigger in _HOMOGLYPH_TRIGGERS:
+        idx = lowered.find(trigger)
+        while idx != -1 and len(hits) < 20:
+            start = max(0, idx - 25)
+            end = min(len(text), idx + len(trigger) + 25)
+            hits.append(f"位置 {idx}: …{text[start:end]}…")
+            idx = lowered.find(trigger, idx + 1)
+    return hits
+
+
 def _check_base64(text: str) -> List[str]:
     hits = []
     for m in _B64_RE.finditer(text):
         cand = m.group(0)
         # 过滤明显是普通长单词的情况（含小写长串多半不是 b64）
-        if not re.search(r"[a-z]{6,}", cand):
-            hits.append(f"位置 {m.start()}: {cand[:60]}…")
+        if re.search(r"[a-z]{6,}", cand):
+            continue
+        # 过滤 data:image/...;base64, 开头的图片数据（正常内容，非隐藏指令）
+        before = text[max(0, m.start() - 60):m.start()]
+        if re.search(r"data:\s*image/|data:\s*[a-z]+/[a-z+.-]+;base64,", before, re.I):
+            continue
+        hits.append(f"位置 {m.start()}: {cand[:60]}…")
     return hits[:20]
 
 
