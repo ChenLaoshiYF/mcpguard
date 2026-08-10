@@ -31,7 +31,7 @@ def check(name: str, cond: bool):
 
 
 def main():
-    print("=== 鉴盾 MCPGuard 自测 ===\n")
+    print("=== 明棱 MCPGuard 自测 ===\n")
 
     # 干净文本
     check("干净文本无命中", len(_scan("获取摄像头画面并返回。参数: camera_id。")) == 0)

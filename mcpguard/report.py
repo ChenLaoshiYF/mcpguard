@@ -103,7 +103,7 @@ class ReportBuilder:
     def to_text(results: List[TargetResult]) -> str:
         lines = []
         lines.append("=" * 62)
-        lines.append("  鉴盾 MCPGuard - AI Agent 安全扫描报告")
+        lines.append("  明棱 MCPGuard - AI Agent 安全扫描报告")
         lines.append("=" * 62)
 
         total_findings = sum(len(r.findings) for r in results)

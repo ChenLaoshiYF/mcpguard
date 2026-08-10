@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcpguard"
-version = "0.1.0"
-description = "鉴盾 MCPGuard：本地 AI Agent 安全扫描器，检测 MCP 工具描述中的投毒特征"
+version = "0.2.0"
+description = "明棱 MCPGuard：本地 AI Agent 安全扫描器，检测 MCP 工具描述中的投毒特征"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

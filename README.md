@@ -1,4 +1,4 @@
-# 鉴盾 · MCPGuard
+# 明棱 · MCPGuard
 
 本地 AI Agent 安全扫描器：检测 MCP 工具描述与 skill 内容中的投毒特征，包括提示注入、同形字混淆、Unicode 隐形字符、危险 shell 模式、静默外发行为等。
 
@@ -36,7 +36,7 @@ AI Agent 会自主安装 MCP server、加载 skill、调用工具。**攻击者�
 
 **方式 A：Windows 双击运行**
 
-双击 `双击我.bat`，自动扫描本机 MCP 配置与 skill 目录。
+双击 `启动明棱.bat`，自动扫描本机 MCP 配置与 skill 目录。
 
 **方式 B：独立 exe（无需 Python）**
 
@@ -125,8 +125,8 @@ mcpguard/
 ├── report.py      报告生成（终端/JSON，含凭据脱敏）
 samples/           演示样本（含恶意配置，仅演示用）
 selftest.py        自测脚本
-双击我.bat         双击启动（扫描本机）
-演示模式.bat       双击启动（扫描演示样本）
+启动明棱.bat      双击启动（扫描本机）
+明棱演示.bat      双击启动（扫描演示样本）
 ```
 
 ## 路线图

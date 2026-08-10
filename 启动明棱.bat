@@ -1,16 +1,16 @@
 @echo off
 chcp 65001 >nul 2>&1 || chcp 936 >nul
-title MCPGuard - Demo Mode (scan bundled samples)
+title Mingleng MCPGuard - AI Agent Security Scanner
 cd /d "%~dp0"
 echo ============================================================
-echo   MCPGuard DEMO - scanning bundled sample configs
-echo   NOTE: samples include a deliberately malicious server
-echo   to demonstrate detection. Your real system is fine.
+echo   Mingleng MCPGuard - scan your AI agent's security posture
 echo ============================================================
 echo.
-"%~dp0dist\mcpguard.exe" --path "%~dp0samples"
+echo Scanning MCP configs and skill directories...
+echo.
+"%~dp0dist\mcpguard.exe"
 echo.
 echo ============================================================
-echo   Demo finished. Press any key to close.
+echo   Scan finished. Press any key to close.
 echo ============================================================
 pause

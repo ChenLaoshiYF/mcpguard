@@ -1,4 +1,4 @@
-"""鉴盾 (MCPGuard) 命令行入口。
+"""明棱 (MCPGuard) 命令行入口。
 
 用法:
     python -m mcpguard                      # 扫描本机默认位置
@@ -38,7 +38,7 @@ def _severity_rank(sev: str) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="mcpguard",
-        description="鉴盾 MCPGuard - 本地 AI Agent 安全扫描器（检测 MCP 工具描述中的投毒特征）",
+        description="明棱 MCPGuard - 本地 AI Agent 安全扫描器（检测 MCP 工具描述中的投毒特征）",
     )
     parser.add_argument("--path", action="append", default=None,
                         help="额外扫描的目录或文件（可重复指定）")
