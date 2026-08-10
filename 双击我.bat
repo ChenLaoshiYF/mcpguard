@@ -1,15 +1,16 @@
 @echo off
 chcp 65001 >nul
-title 鉴盾 MCPGuard - AI Agent 安全扫描
+title MCPGuard - AI Agent Security Scanner
+cd /d "%~dp0"
 echo ============================================================
-echo   鉴盾 MCPGuard - 双击扫描你的 AI Agent 安全状况
+echo   MCPGuard - Scan your AI agent's security posture
 echo ============================================================
 echo.
-echo [1/2] 正在扫描本机 MCP 配置和 skill 目录...
+echo [1/2] Scanning MCP configs and skill directories...
 echo.
 "%~dp0dist\mcpguard.exe" --path "%~dp0samples"
 echo.
 echo ============================================================
-echo   扫描完成。可以关闭本窗口，或按任意键重新检查。
+echo   Scan finished. Press any key to close.
 echo ============================================================
 pause
