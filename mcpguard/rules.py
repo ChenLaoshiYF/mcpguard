@@ -209,8 +209,8 @@ def build_default_engine() -> RuleEngine:
         id="UNI-001",
         name="Unicode 隐形字符",
         severity="high",
-        description="检测到人类不可见但 LLM 可读的 Unicode 字符（私有区/零宽字符），"
-                    "常用于隐藏恶意指令绕过人工审查。",
+        description="检测到不可见 Unicode 字符（私有区/零宽字符/双向文本控制符），"
+                    "可能用于隐藏恶意指令以规避人工审查。",
         check=_check_hidden_unicode,
     ))
 
@@ -218,8 +218,8 @@ def build_default_engine() -> RuleEngine:
         id="B64-001",
         name="可疑 base64 长串",
         severity="medium",
-        description="一段疑似 base64 编码的长串，可能是藏了东西，也可能只是普通数据。"
-                    "有空的话解码看一眼。",
+        description="检测到疑似 base64 编码的长字符串，可能用于混淆指令内容，"
+                    "建议解码后人工确认。",
         check=_check_base64,
     ))
 
@@ -227,8 +227,8 @@ def build_default_engine() -> RuleEngine:
         id="INJ-001",
         name="指令覆盖模式",
         severity="critical",
-        description="想绕过/覆盖原有指令的表述（如 ignore previous instructions），"
-                    "提示注入和工具投毒最爱用这套。",
+        description="检测到试图覆盖/忽略原有指令的表述（如 ignore previous instructions），"
+                    "这是提示注入与工具投毒的核心特征。",
         check=_check_instruction_override,
     ))
 
@@ -236,8 +236,8 @@ def build_default_engine() -> RuleEngine:
         id="PTH-001",
         name="敏感路径引用",
         severity="high",
-        description="描述里引用了敏感文件路径（SSH 密钥、AWS 凭据、token 等），"
-                    "有被拿去偷凭据的风险。",
+        description="检测到对敏感文件路径的引用（SSH 密钥、AWS 凭据、token 等），"
+                    "存在被利用进行凭据窃取的风险。",
         check=_check_dangerous_paths,
     ))
 
@@ -262,8 +262,8 @@ def build_default_engine() -> RuleEngine:
         id="BH-001",
         name="可疑工具行为描述",
         severity="high",
-        description="描述里暗示静默操作、自动外发数据、不让你知道之类的行为，"
-                    "跟已知的投毒套路对得上。",
+        description="检测到静默操作、自动外发数据、绕过用户知情等异常行为描述，"
+                    "符合已知工具投毒攻击特征。",
         check=_check_suspicious_behavior,
     ))
 
@@ -271,8 +271,8 @@ def build_default_engine() -> RuleEngine:
         id="HMG-001",
         name="同形字混淆 (homoglyph)",
         severity="high",
-        description="用长相相近的 Unicode 字符冒充普通字母（比如西里尔 а 冒充 a），"
-                    "专门用来骗过关键词过滤。",
+        description="检测到使用视觉相近的 Unicode 字符冒充 ASCII 字母（如西里尔 а 冒充 a），"
+                    "用于绕过关键词过滤隐藏恶意指令。",
         check=_check_homoglyph,
     ))
 

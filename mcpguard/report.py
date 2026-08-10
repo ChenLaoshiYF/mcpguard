@@ -103,25 +103,24 @@ class ReportBuilder:
     def to_text(results: List[TargetResult]) -> str:
         lines = []
         lines.append("=" * 62)
-        lines.append("  鉴盾 MCPGuard")
-        lines.append("  —— 帮你看看装的那些 AI 工具靠不靠谱")
+        lines.append("  鉴盾 MCPGuard - AI Agent 安全扫描报告")
         lines.append("=" * 62)
 
         total_findings = sum(len(r.findings) for r in results)
         if not results:
-            lines.append("\n没找到可以扫描的东西（本机可能没有 MCP 配置或 skill 目录）。")
-            lines.append("用 --path 指个目录或文件试试。")
+            lines.append("\n未发现可扫描目标（本机可能没有 MCP 配置或 skill 目录）。")
+            lines.append("可通过 --path 指定扫描路径。")
             return "\n".join(lines)
 
         if total_findings == 0:
-            lines.append(f"\n翻了 {len(results)} 个地方，没发现可疑特征。看着挺干净。\n")
+            lines.append(f"\n扫描 {len(results)} 个目标，未发现可疑特征。\n")
         else:
-            lines.append(f"\n翻了 {len(results)} 个地方，发现 {total_findings} 处可疑。\n")
+            lines.append(f"\n扫描 {len(results)} 个目标，命中 {total_findings} 条。\n")
 
         for r in results:
             mark = "[PASS]" if r.score == 100 else ("[WARN]" if r.score >= 70 else "[FAIL]")
             lines.append(f"{mark} [{r.score:3d}/100] {r.target_name}")
-            lines.append(f"    类型: {r.kind} | 位置: {_redact(r.path)}")
+            lines.append(f"    类型: {r.kind} | 路径: {_redact(r.path)}")
             if r.findings:
                 for f in r.findings:
                     sev = f.severity.upper()
@@ -136,18 +135,18 @@ class ReportBuilder:
         med = sum(1 for r in results for f in r.findings if f.severity == "medium")
         low = sum(1 for r in results for f in r.findings if f.severity == "low")
         info = sum(1 for r in results for f in r.findings if f.severity == "info")
-        lines.append(f"  严重 {crit} | 较高 {high} | 中等 {med} | 较低 {low} | 提示 {info}")
+        lines.append(f"  严重(critical): {crit} | 高危(high): {high} | 中危(medium): {med} | 低危(low): {low} | 提示(info): {info}")
         if crit:
             lines.append("")
-            lines.append("[!] 有严重级命中：可能是真有投毒指令，")
-            lines.append("    也可能只是文档里提了一嘴攻击手法。值得亲手核一下。")
+            lines.append("[!] 存在 critical 级命中：可能包含恶意指令，也可能是文档中对攻击手法的引用。")
+            lines.append("    建议对相应目标进行人工核验。")
         lines.append("")
-        lines.append("分数怎么算的: 100 起步，严重扣 40、较高扣 20、中等扣 8、较低扣 3、提示扣 1。")
-        lines.append("  90+ 基本没事 | 70-89 建议看看 | 50-69 有点悬 | <50 得上心。")
-        lines.append("  不过分数只是规则命中的结果，不等于真的被攻击，逐条人工确认才算数。")
+        lines.append("评分规则: 满分 100，critical -40、high -20、medium -8、low -3、info -1。")
+        lines.append("  90+ 低风险 | 70-89 建议核查 | 50-69 中风险 | <50 需重点关注。")
+        lines.append("  注意: 评分仅反映规则命中情况，不代表实际攻击发生，请逐条人工核验。")
         lines.append("")
-        lines.append("说句实话: 这是关键词规则扫的，可能误报，也防不住玩文字游戏的注入。")
-        lines.append("          别拿这份报告当最终结论，高风险项务必自己再确认一遍。")
+        lines.append("局限说明: 本工具基于关键词规则，可能存在误报，且无法覆盖语义变体注入。")
+        lines.append("          请勿仅凭报告做出安全结论，高风险项务必人工确认。")
         return "\n".join(lines)
 
     # ------------------------------------------------------------------

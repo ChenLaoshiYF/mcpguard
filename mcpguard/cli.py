@@ -38,14 +38,14 @@ def _severity_rank(sev: str) -> int:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         prog="mcpguard",
-        description="鉴盾 MCPGuard — 扫一遍本机的 AI 工具链，看有没有藏着坏东西",
+        description="鉴盾 MCPGuard - 本地 AI Agent 安全扫描器（检测 MCP 工具描述中的投毒特征）",
     )
     parser.add_argument("--path", action="append", default=None,
-                        help="额外扫一个目录或文件（可重复）")
+                        help="额外扫描的目录或文件（可重复指定）")
     parser.add_argument("--json", action="store_true",
-                        help="输出 JSON（方便程序处理）")
+                        help="输出 JSON 格式报告")
     parser.add_argument("--exit-code", action="store_true",
-                        help="发现问题时退出码返回 1（给 CI 用）")
+                        help="存在 critical/high 命中时退出码返回 1（供 CI 使用）")
     parser.add_argument("--version", action="version",
                         version=f"mcpguard {__version__}")
     args = parser.parse_args(argv)
