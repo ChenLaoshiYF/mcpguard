@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 import re
 from dataclasses import dataclass, field
@@ -14,19 +15,40 @@ from typing import Dict, List
 
 from .rules import Finding, RuleEngine, severity_score
 
-# 报告脱敏：识别长密钥形态（ghp_/sk-/github_pat_/Bearer 等），打印前打码
+# 报告脱敏：识别各类凭据形态，打印前打码（保留前缀便于识别类型）
 _SECRET_PATTERNS = [
-    re.compile(r"(ghp_|github_pat_|sk-|sk_|xoxb-|AIza|AKIA)[A-Za-z0-9_\-]{10,}"),
+    # 平台 token（ghp_/sk-/github_pat_/glpat-/sk-ant- 等）
+    re.compile(r"(ghp_|gho_|ghu_|ghr_|github_pat_|glpat-|sk-ant-|sk-|sk_|xoxb-|AIza|AKIA)[A-Za-z0-9_\-]{10,}"),
+    # Bearer / Basic 认证
     re.compile(r"(Bearer\s+)[A-Za-z0-9._\-]{10,}", re.I),
-    re.compile(r"(token\s*[=:]\s*)[A-Za-z0-9._\-]{8,}", re.I),
-    re.compile(r"(password\s*[=:]\s*)[^\s,;\"]{6,}", re.I),
+    re.compile(r"(Basic\s+)[A-Za-z0-9+/=]{10,}", re.I),
+    # token= / token: / api_key= 等赋值形态（含引号包裹）
+    re.compile(r"((?:token|api[_-]?key|secret|access[_-]?key|client[_-]?secret)\s*[=:]\s*[\"']?)[^\s,;\"']{8,}", re.I),
+    # password= / password: （含引号包裹）
+    re.compile(r"(password\s*[=:]\s*[\"']?)[^\s,;\"']{6,}", re.I),
+    # JWT（三段 base64url）
+    re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),
+    # URL 内嵌凭据 https://user:pass@host
+    re.compile(r"(https?://)[^/\s:@]+:[^/\s@]+@", re.I),
 ]
+
+# SSH 私钥块
+_PRIVATE_KEY_RE = re.compile(
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
+    re.S,
+)
 
 
 def _redact(text: str) -> str:
-    """把文本中的密钥形态替换为 ***，防止报告泄露凭据。"""
+    """把文本中的凭据形态替换为 ***，防止报告泄露。"""
+    # 先处理多行私钥块
+    text = _PRIVATE_KEY_RE.sub("[REDACTED PRIVATE KEY]", text)
     for pat in _SECRET_PATTERNS:
-        text = pat.sub(lambda m: m.group(1) + "***" if m.lastindex else "***", text)
+        # 有捕获组（group 1）时保留前缀，无捕获组（JWT/URL）时整个替换
+        if pat.groups:
+            text = pat.sub(lambda m: m.group(1) + "***", text)
+        else:
+            text = pat.sub("***", text)
     return text
 
 
@@ -95,7 +117,7 @@ class ReportBuilder:
         for r in results:
             mark = "[PASS]" if r.score == 100 else ("[WARN]" if r.score >= 70 else "[FAIL]")
             lines.append(f"{mark} [{r.score:3d}/100] {r.target_name}")
-            lines.append(f"    类型: {r.kind} | 路径: {r.path}")
+            lines.append(f"    类型: {r.kind} | 路径: {_redact(r.path)}")
             if r.findings:
                 for f in r.findings:
                     sev = f.severity.upper()
@@ -109,12 +131,20 @@ class ReportBuilder:
         crit = sum(1 for r in results for f in r.findings if f.severity == "critical")
         high = sum(1 for r in results for f in r.findings if f.severity == "high")
         med = sum(1 for r in results for f in r.findings if f.severity == "medium")
-        lines.append(f"  critical: {crit} | high: {high} | medium: {med} | 其余: {total_findings - crit - high - med}")
+        low = sum(1 for r in results for f in r.findings if f.severity == "low")
+        info = sum(1 for r in results for f in r.findings if f.severity == "info")
+        lines.append(f"  critical: {crit} | high: {high} | medium: {med} | low: {low} | info: {info}")
         if crit:
-            lines.append("\n[!] 发现 critical 级风险：工具描述可能存在投毒指令，")
-            lines.append("  建议立即停止使用对应 MCP server，并人工检查其来源。")
-        lines.append("\n说明: 规则检测仅提示可疑特征，不构成最终判定；")
-        lines.append("      高风险项请结合人工审查确认。")
+            lines.append("")
+            lines.append("[!] 存在 critical 级命中：工具描述可能包含投毒指令，")
+            lines.append("    也可能只是文档中引用了攻击案例。请人工核对后判断。")
+        lines.append("")
+        lines.append("评分说明: 评分 = 100 - 扣分(critical:-40, high:-20, medium:-8, low:-3, info:-1)。")
+        lines.append("  90+ 低风险 | 70-89 建议核查 | 50-69 中风险 | <50 需重点关注。")
+        lines.append("  注意: 评分反映规则命中情况，不代表实际攻击。请逐条人工核对。")
+        lines.append("")
+        lines.append("免责声明: 检测基于关键词规则，可能产生误报；")
+        lines.append("          规则无法检测语义变体的注入，请勿仅凭报告做安全结论。")
         return "\n".join(lines)
 
     # ------------------------------------------------------------------
@@ -123,7 +153,7 @@ class ReportBuilder:
     @staticmethod
     def to_json(results: List[TargetResult]) -> str:
         payload = {
-            "scan_time": __import__("datetime").datetime.now().isoformat(),
+            "scan_time": datetime.datetime.now().isoformat(),
             "summary": {
                 "targets": len(results),
                 "findings": sum(len(r.findings) for r in results),
@@ -141,7 +171,7 @@ class ReportBuilder:
                             "severity": f.severity,
                             "title": f.title,
                             "excerpt": _redact(f.excerpt),
-                            "source": f.source,
+                            "source": _redact(f.source),
                         }
                         for f in r.findings
                     ],

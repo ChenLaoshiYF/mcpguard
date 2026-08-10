@@ -77,7 +77,10 @@ class Scanner:
 
     def _extract_mcp_config(self, path: Path) -> None:
         try:
-            data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+            data = json.loads(self._read_text(path))
+        except RecursionError:
+            print(f"[警告] {path.name} 嵌套过深无法解析，已跳过")
+            return
         except Exception:
             return  # 非 JSON 或损坏，跳过
         servers = self._find_servers(data)
@@ -158,7 +161,7 @@ class Scanner:
             try:
                 if p.stat().st_size > _MAX_FILE_BYTES:
                     continue
-                content = p.read_text(encoding="utf-8", errors="replace")
+                content = self._read_text(p)
             except Exception:
                 continue
             if not content.strip():
@@ -179,6 +182,9 @@ class Scanner:
     def _scan_explicit_paths(self) -> None:
         for raw in self.extra_paths:
             path = Path(raw).expanduser().resolve()
+            if not path.exists():
+                print(f"[提示] 指定的路径不存在: {raw}")
+                continue
             if path.is_dir():
                 self._scan_dir(path)
             elif path.is_file():
@@ -186,7 +192,10 @@ class Scanner:
 
     def _scan_file(self, path: Path) -> None:
         try:
-            content = path.read_text(encoding="utf-8", errors="replace")
+            if path.stat().st_size > _MAX_FILE_BYTES:
+                print(f"[提示] 文件过大跳过 ({path.name}, {path.stat().st_size} bytes)")
+                return
+            content = self._read_text(path)
         except Exception:
             return
         self._targets.append(
@@ -196,6 +205,20 @@ class Scanner:
     # ------------------------------------------------------------------
     # 工具
     # ------------------------------------------------------------------
+    @staticmethod
+    def _read_text(path: Path) -> str:
+        """读取文本文件：优先 UTF-8，失败后回退 GBK，再回退 latin-1。
+
+        中文 Windows 上有大量 GBK 编码文件，只按 UTF-8 读会全部变成乱码导致漏检。
+        """
+        raw = path.read_bytes()
+        for enc in ("utf-8", "gbk", "gb2312", "latin-1"):
+            try:
+                return raw.decode(enc)
+            except (UnicodeDecodeError, ValueError):
+                continue
+        return raw.decode("utf-8", errors="replace")
+
     @staticmethod
     def _expand_path(raw: str) -> Optional[Path]:
         """展开 %VAR% 与 ~ 为绝对路径。"""
