@@ -218,8 +218,8 @@ def build_default_engine() -> RuleEngine:
         id="B64-001",
         name="可疑 base64 长串",
         severity="medium",
-        description="检测到疑似 base64 编码的长字符串，可能用于混淆隐藏指令，"
-                    "建议人工解码确认内容。",
+        description="一段疑似 base64 编码的长串，可能是藏了东西，也可能只是普通数据。"
+                    "有空的话解码看一眼。",
         check=_check_base64,
     ))
 
@@ -227,8 +227,8 @@ def build_default_engine() -> RuleEngine:
         id="INJ-001",
         name="指令覆盖模式",
         severity="critical",
-        description="检测到试图覆盖/忽略原有指令的表述（如 ignore previous instructions），"
-                    "这是提示注入与工具投毒的核心特征。",
+        description="想绕过/覆盖原有指令的表述（如 ignore previous instructions），"
+                    "提示注入和工具投毒最爱用这套。",
         check=_check_instruction_override,
     ))
 
@@ -236,8 +236,8 @@ def build_default_engine() -> RuleEngine:
         id="PTH-001",
         name="敏感路径引用",
         severity="high",
-        description="工具描述引用了敏感文件路径（SSH 密钥、AWS 凭据、token 等），"
-                    "存在被利用窃取凭据的风险。",
+        description="描述里引用了敏感文件路径（SSH 密钥、AWS 凭据、token 等），"
+                    "有被拿去偷凭据的风险。",
         check=_check_dangerous_paths,
     ))
 
@@ -262,8 +262,8 @@ def build_default_engine() -> RuleEngine:
         id="BH-001",
         name="可疑工具行为描述",
         severity="high",
-        description="工具描述暗示静默操作、自动外发数据、绕过用户知情等异常行为，"
-                    "符合已知工具投毒攻击特征。",
+        description="描述里暗示静默操作、自动外发数据、不让你知道之类的行为，"
+                    "跟已知的投毒套路对得上。",
         check=_check_suspicious_behavior,
     ))
 
@@ -271,8 +271,8 @@ def build_default_engine() -> RuleEngine:
         id="HMG-001",
         name="同形字混淆 (homoglyph)",
         severity="high",
-        description="检测到用视觉相近的 Unicode 字符冒充 ASCII 字母（如西里尔 а 冒充 a），"
-                    "常用于绕过关键词过滤隐藏恶意指令。",
+        description="用长相相近的 Unicode 字符冒充普通字母（比如西里尔 а 冒充 a），"
+                    "专门用来骗过关键词过滤。",
         check=_check_homoglyph,
     ))
 

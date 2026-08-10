@@ -79,7 +79,7 @@ class Scanner:
         try:
             data = json.loads(self._read_text(path))
         except RecursionError:
-            print(f"[警告] {path.name} 嵌套过深无法解析，已跳过")
+            print(f"[警告] {path.name} 嵌套太深解析不了，跳过这个文件")
             return
         except Exception:
             return  # 非 JSON 或损坏，跳过
@@ -183,7 +183,7 @@ class Scanner:
         for raw in self.extra_paths:
             path = Path(raw).expanduser().resolve()
             if not path.exists():
-                print(f"[提示] 指定的路径不存在: {raw}")
+                print(f"[提示] 没找到这个路径: {raw}")
                 continue
             if path.is_dir():
                 self._scan_dir(path)
@@ -193,7 +193,7 @@ class Scanner:
     def _scan_file(self, path: Path) -> None:
         try:
             if path.stat().st_size > _MAX_FILE_BYTES:
-                print(f"[提示] 文件过大跳过 ({path.name}, {path.stat().st_size} bytes)")
+                print(f"[提示] {path.name} 太大了（{path.stat().st_size} bytes），跳过")
                 return
             content = self._read_text(path)
         except Exception:
