@@ -15,12 +15,17 @@ keywords = ["mcp", "security", "prompt-injection", "tool-poisoning", "llm-securi
 dependencies = []
 
 [project.optional-dependencies]
+# MCP server 模式（可选，不装不影响 CLI 的零依赖属性）
+mcp = [
+    "mcp>=1.0.0",
+]
 dev = [
     "pytest>=8.0",
 ]
 
 [project.scripts]
 mcpguard = "mcpguard.cli:main"
+mcpguard-server = "mcpguard.server_mcp:main"
 
 [tool.setuptools.packages.find]
 include = ["mcpguard*"]

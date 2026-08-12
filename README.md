@@ -54,6 +54,10 @@ mcpguard                          # 扫描本机默认位置
 mcpguard --path ./my-config.json  # 扫描指定路径
 mcpguard --json                   # JSON 输出
 mcpguard --exit-code              # 存在 critical/high 时退出码 1
+
+# MCP server 模式（可选，让 AI Agent 直接调用扫描）
+pip install "mcpguard[mcp]"
+mcpguard-server                   # stdio 模式
 ```
 
 **方式 D：源码运行**
@@ -63,6 +67,10 @@ git clone https://github.com/ChenLaoshiYF/mcpguard.git
 cd mcpguard
 python -m mcpguard
 python selftest.py   # 运行自测
+
+# MCP server 模式
+pip install mcp
+python -m mcpguard.server_mcp
 ```
 
 ## 校验下载
