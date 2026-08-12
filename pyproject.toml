@@ -16,8 +16,9 @@ dependencies = []
 
 [project.optional-dependencies]
 # MCP server 模式（可选，不装不影响 CLI 的零依赖属性）
+# 注意: FastMCP 仅存在于 mcp 1.x，2.0 是旧版 API（MCPServer）
 mcp = [
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2.0.0",
 ]
 dev = [
     "pytest>=8.0",
