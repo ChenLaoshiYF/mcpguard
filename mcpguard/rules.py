@@ -146,6 +146,28 @@ _IGNORE_PATTERNS = [
     re.compile(r"(复述|泄露|透露|展示).{0,8}(系统提示|system prompt|系统指令)", re.I),
 ]
 
+# 角色扮演型注入（语义漂移，v0.3.0 新增）：
+# 不直接“忽略指令”，而是诱导模型切换角色/行为，绕过关键词过滤
+_ROLEPLAY_PATTERNS = [
+    re.compile(r"(从现在开始|从现在起|接下来).{0,10}(你是|你扮演|你将扮演|请扮演|假装你是)", re.I),
+    re.compile(r"(你不再|你不是|忘记你).{0,8}(AI助手|AI 助手|语言模型|assistant|chatbot)", re.I),
+    re.compile(r"you\s+are\s+(now\s+)?(no\s+longer\s+)?(an?\s+)?(assistant|chatbot|ai|llm)", re.I),
+    re.compile(r"(act|behave|pretend|roleplay)\s+(as|like)\s+(an?\s+)?(hacker|coder|admin|root|terminal)", re.I),
+    re.compile(r"(扮演|假装|模拟).{0,8}(黑客|管理员|root|终端|系统)", re.I),
+    re.compile(r"(system\s+prompt|instructions?)\s+(is\s+)?(now|replaced|overridden)", re.I),
+    re.compile(r"new\s+(instructions?|rules|directives?)\s+(apply|take\s+effect)", re.I),
+]
+
+# 多语言指令覆盖（v0.3.0 新增）：日语/韩语提示注入
+_I18N_OVERRIDE_PATTERNS = [
+    # 日语：指示を無視して（忽略指令）
+    re.compile(r"(指示|命令|プロンプト).{0,8}(無視|無視して|無視しろ)", re.I),
+    re.compile(r"(これまでの|以前の).{0,6}(指示|命令).{0,8}(無視|すべて)", re.I),
+    # 韩语：지시를 무시하고（忽略指令）
+    re.compile(r"(지시|명령|프롬프트).{0,8}(무시|무시하고|무시해)", re.I),
+    re.compile(r"(이전|지금까지).{0,6}(지시|명령).{0,6}(무시|전부)", re.I),
+]
+
 # 危险路径（敏感文件）
 _DANGEROUS_PATHS = [
     r"[/\\]\.ssh[/\\]",
@@ -276,6 +298,24 @@ def build_default_engine() -> RuleEngine:
         check=_check_homoglyph,
     ))
 
+    engine.register(Rule(
+        id="INJ-002",
+        name="角色扮演注入",
+        severity="critical",
+        description="检测到诱导模型切换角色/行为的表述（如“从现在开始你是黑客”），"
+                    "属于提示注入的语义变体，可绕过关键词过滤。",
+        check=_check_roleplay,
+    ))
+
+    engine.register(Rule(
+        id="INJ-003",
+        name="多语言指令覆盖",
+        severity="high",
+        description="检测到日语/韩语的指令覆盖表述（無視して / 무시하고），"
+                    "多语言提示注入正成为国际工具投毒的趋势手法。",
+        check=_check_i18n_override,
+    ))
+
     return engine
 
 
@@ -380,6 +420,28 @@ def _check_dangerous_shell(text: str) -> List[str]:
 def _check_suspicious_behavior(text: str) -> List[str]:
     hits = []
     for pat in _SUSPICIOUS_BEHAVIOR:
+        for m in pat.finditer(text):
+            start = max(0, m.start() - 25)
+            end = min(len(text), m.end() + 25)
+            hits.append(f"位置 {m.start()}: …{text[start:end]}…")
+    return hits[:20]
+
+
+def _check_roleplay(text: str) -> List[str]:
+    """角色扮演注入检测（INJ-002）。"""
+    hits = []
+    for pat in _ROLEPLAY_PATTERNS:
+        for m in pat.finditer(text):
+            start = max(0, m.start() - 25)
+            end = min(len(text), m.end() + 25)
+            hits.append(f"位置 {m.start()}: …{text[start:end]}…")
+    return hits[:20]
+
+
+def _check_i18n_override(text: str) -> List[str]:
+    """多语言指令覆盖检测（INJ-003，日语/韩语）。"""
+    hits = []
+    for pat in _I18N_OVERRIDE_PATTERNS:
         for m in pat.finditer(text):
             start = max(0, m.start() - 25)
             end = min(len(text), m.end() + 25)
