@@ -146,6 +146,14 @@ selftest.py        自测脚本
 - [ ] GitHub Action 集成示例
 - [ ] 代码签名证书
 
+## 系列项目
+
+明棱是 [ChenLaoshiYF](https://github.com/ChenLaoshiYF) 系列开源项目之一：
+
+- [**yunleng 云棱**](https://github.com/ChenLaoshiYF/yunleng)：摄像头视觉 MCP Server，给 AI Agent 装上眼睛
+- [**chening 陈棱**](https://github.com/ChenLaoshiYF/chening)：国赛数模 AI 技能包
+- [**zhiyin 纸音**](https://github.com/ChenLaoshiYF/zhiyin)：俄汉同声传译，网课实时字幕
+
 ## License
 
 MIT
