@@ -8,9 +8,9 @@
 
 用法：
     python -m mcpguard.server_mcp          # stdio 模式（默认）
-    python -m mcpguard.server_mcp --http   # streamable HTTP 模式
+    python -m mcpguard.server_mcp --transport http   # streamable HTTP 模式
 
-依赖：需要安装 mcp 库（pip install mcp 或 pip install "mcpguard[mcp]"）。
+安装 MCP 适配层：pip install "mcpguard[mcp]"。
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ import sys
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:
-    print("[错误] 未安装 mcp 库。请运行: pip install mcp 或 pip install \"mcpguard[mcp]\"", file=sys.stderr)
+    print('[错误] 缺少兼容的 MCP 适配层。请运行 pip install "mcpguard[mcp]"。', file=sys.stderr)
     sys.exit(1)
 
 from . import __version__
@@ -74,7 +74,9 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.transport == "http":
-        mcp.run(transport="streamable-http", host=args.host, port=args.port)
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        mcp.run(transport="streamable-http")
     else:
         mcp.run(transport="stdio")
     return 0

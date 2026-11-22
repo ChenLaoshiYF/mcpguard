@@ -71,7 +71,7 @@ python -m mcpguard
 python selftest.py   # 运行自测
 
 # MCP server 模式
-pip install mcp
+pip install -e ".[mcp]"
 python -m mcpguard.server_mcp
 ```
 
@@ -165,7 +165,7 @@ MIT
 容器化运行（MCP stdio 模式），镜像托管在 GHCR：
 
 ```bash
-docker run --rm ghcr.io/chenlaoshiyf/mcpguard:latest 
+docker run --rm -i ghcr.io/chenlaoshiyf/mcpguard:latest
 ```
 
 镜像随 master 分支自动构建推送。
